@@ -1,0 +1,93 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - ead_migration_module
+id: ead_source_ns
+class: null
+field_plugin_method: null
+cck_plugin_method: null
+migration_tags: null
+migration_group: null
+label: 'Migration EAD source from public FS'
+source:
+  constants:
+    TITLE_SUFFIX: ' (EAD)'
+    Term_Model_uri: 'https://schema.org/DigitalDocument'
+    Term_Type_uri: 'http://purl.org/dc/dcmitype/Text'
+    Term_Genre: 'documentaries (documents)'
+    Term_Genre_uri: 'http://vocab.getty.edu/page/aat/300249172'
+  plugin: url
+  data_fetcher_plugin: file
+  data_parser_plugin: simple_xml
+  urls:
+    - 'public://ead_xmls/ead_data_ns.xml'
+    - 'public://ead_xmls/ead_data_02.xml'
+  namespaces:
+    ead: 'urn:isbn:1-931666-22-9'
+    xlink: 'http://www.w3.org/1999/xlink'
+  item_selector: '/ead:ead'
+  fields:
+    -
+      name: src_unique_id
+      label: 'Unique ID'
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitid[@type='aspace_uri']"
+    -
+      name: src_name
+      label: Name
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unittitle"
+    -
+      name: src_eadid
+      label: EADID
+      selector: 'ead:eadheader/ead:eadid'
+    -
+      name: src_callnumber
+      label: 'Call number'
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitid[not(@*)]"
+  ids:
+    src_unique_id:
+      type: string
+process:
+  title:
+    plugin: concat
+    source:
+      - src_name
+      - constants/TITLE_SUFFIX
+  status:
+    plugin: default_value
+    default_value: 0
+  field_resource_type:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Type_uri
+    value_key: field_external_uri
+    bundle_key: vid
+    bundle: resource_types
+    ignore_case: true
+    access_check: false
+  field_identifier: src_unique_id
+  field_model:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Model_uri
+    value_key: field_external_uri
+    bundle_key: vid
+    bundle: islandora_models
+    ignore_case: true
+    access_check: false
+  field_genre:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Genre_uri
+    value_key: field_authority_link
+    bundle_key: vid
+    bundle: genre
+    ignore_case: true
+    access_check: false
+  field_pid: src_eadid
+  field_local_identifier: src_callnumber
+destination:
+  plugin: 'entity:node'
+  default_bundle: islandora_object
+migration_dependencies: null
+include: null

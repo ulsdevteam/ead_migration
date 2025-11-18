@@ -1,0 +1,10 @@
+type: module
+name: EAD Migration Module
+description: 'Migration EAD XMLs into Drupal '
+package: Custom
+core_version_requirement: ^9 || ^10
+dependencies:
+  - drupal:migrate
+  - migrate_plus:migrate_plus
+  - drupal:node
+  - drupal:taxonomy

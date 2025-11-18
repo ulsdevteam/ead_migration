@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Contains ead_migration_module.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ * Provides help text for EAD migration module
+ */
+function ead_migration_module_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.ead_migration_module':
+      return t('Provide EAD xmls migration to Drupal') ;
+  }
+}
