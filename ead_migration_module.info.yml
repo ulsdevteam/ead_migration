@@ -5,6 +5,9 @@ package: Custom
 core_version_requirement: ^9 || ^10
 dependencies:
   - drupal:migrate
-  - migrate_plus:migrate_plus
+  - drupal:migrate_plus
+  - drupal:migrate_tools
+  - drupal:media
+  - drupal:file
   - drupal:node
   - drupal:taxonomy
