@@ -1,0 +1,5 @@
+id: ead_migration
+label: 'FindingAid Migration'
+description: 'A module to migrate Finding Aids into Drupal.'
+source_type: 'FindingAid source'
+shared_configuration: null

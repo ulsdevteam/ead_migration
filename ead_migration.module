@@ -1,0 +1,137 @@
+<?php
+
+/**
+ * @file
+ * Contains ead_migration.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\media\Entity\Media;
+use Drupal\file\Entity\File;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
+use Drupal\migrate_tools\MigrateExecutable;
+
+/**
+ * hook_entity_insert() for Media FindingAid
+ */
+function ead_migration_entity_insert(EntityInterface $entity) {
+  if ($entity->getEntityTypeId() !== 'media' || $entity->bundle() !== 'findingaid') {
+    return;
+  }
+
+  //check xml file uploaded
+  $fileId = $entity->get('field_media_file')->target_id;
+  if ($fileId) {
+    $file = File::load($fileId); 
+    if ($file) {
+      $node_ids = ead_migration_node_creation($entity->id(), $fileId);
+      //link media entity to findingaid node after node migration
+      if (!empty($node_ids) && isset($node_ids[0])) {
+        $entity->set('field_media_of', $node_ids[0]); 
+        $entity->save();
+        \Drupal::logger('ead_migration')->info('Associate Media @mid to FindingAid migrated node @nid', ['@mid'=>$entity->id(), '@nid'=>$node_ids]);
+      }
+    }
+  }
+}
+
+/**
+ * Finding Aid Node creation from EAD xml
+ */
+function ead_migration_node_creation($media_id, $file_id) {
+  //initialize current source id and destination id from this migration run
+  $node_ids = [];
+  $src_ids = [];
+  try {
+    \Drupal::logger('ead_migration')->info('Starting node creation for Media @mid', ['@mid'=>$media_id,]);
+
+  //load file entity
+  $f = File::load($file_id);
+  $f_path = \Drupal::service('file_system')->realpath($f->getFileUri()); 
+  if( !$f_path || !file_exists($f_path)) {
+    throw new Exception("Media File path does not exists". $f_path);
+  }
+
+  //update node migration yml with filepath
+  ead_migration_update_config($media_id, $f->getFileUri());
+
+  //load and execute node migration
+  $migration_plugin_manager = \Drupal::service('plugin.manager.migration');
+  $migration = $migration_plugin_manager->createInstance('ead_extract_node');
+  if(!$migration) {
+    throw new Exception('Node Migration instance could not be created');
+    }
+
+  //capture current sourceIDs to process migration
+  $src_plugin = $migration->getSourcePlugin();
+  $src_plugin->rewind();
+  while($src_plugin->valid()) {
+    $row = $src_plugin->current();
+    $src_id = $row->getSourceProperty('src_unique_id');
+    if($src_id) {
+      $src_ids[] = $src_id;
+      \Drupal::logger('ead_migration')->info('Current SourceId: @src_id to process',['@src_id'=> $src_id]);
+    }
+    $src_plugin->next();
+  }
+  $executable = new MigrateExecutable($migration);
+  $result = $executable->import();
+  \Drupal::logger('ead_migration')->info('Migration completed for @mid',['@mid'=> $media_id]);
+
+  //retrieve destination node for the current findingaid migration
+  $map = $migration->getIdMap();                                                                                                                         
+  $dest_ids = $map->lookupDestinationIds(['src_unique_id' => $src_id]);                                                                                                          
+  if (!empty($dest_ids) && isset($dest_ids[0])) {                                                                                                       
+      $node_ids[] = $dest_ids[0];  
+      \Drupal::logger('ead_migration')->info('Found Migrated FindingAid Node:@nid for source: @srcid',
+            ['@nid' => $dest_ids[0],
+             '@srcid' => $src_id,
+            ]);                                                                                                  
+      }                                
+  return $node_ids; 
+  } catch (\Exception $e) {
+  	\Drupal::logger('ead_migration')->error('Migration Error for Media: @mid: @err', ['@mid'=> $media_id, '@err'=>$e->getMessage(),]);
+    return [];
+    }
+}
+
+/**
+ * node migration yml update
+ */
+function ead_migration_update_config($media_id, $file_path) {
+  //get configuration
+  $config = \Drupal::configFactory()->getEditable('migrate_plus.migration.ead_extract_node');
+  $source_config = $config->get('source');
+  $source_config['urls'] = [$file_path];
+  $source_config['media_id'] = $media_id;
+
+  //save
+  $config->set('source', $source_config);
+  $config->save();
+} 
+
+/**
+ * hook_uninstall() 
+ */
+function ead_migration_uninstall() {
+  //reset migration config to default
+  $config = \Drupal::configFactory()->getEditable('migrate_plus.migration.ead_extract_node');
+  $source_config = $config->get('source');
+  $source_config['urls'] = ['private://findingaid/testxml.xml'];
+  unset($source_config['media_id']);
+  $config->set('source', $source_config);
+  $config->save();
+}
+
+/**
+ * Implements hook_help().
+ * Provides help text for EAD migration module
+ */
+function ead_migration_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.ead_migration':
+      return t('Provide Finding Aids migration to Drupal') ;
+  }
+}

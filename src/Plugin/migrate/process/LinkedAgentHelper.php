@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\ead_migration_module\Plugin\migrate\process;
+namespace Drupal\ead_migration\Plugin\migrate\process;
 
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;

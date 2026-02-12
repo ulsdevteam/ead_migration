@@ -1,6 +1,6 @@
 type: module
-name: EAD Migration Module
-description: 'Migration EAD XMLs into Drupal '
+name: EAD Migration
+description: 'Migration Finding Aids into Drupal'
 package: Custom
 core_version_requirement: ^9 || ^10
 dependencies:
