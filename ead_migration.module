@@ -64,6 +64,12 @@ function ead_migration_node_creation($media_id, $file_id) {
     throw new Exception('Node Migration instance could not be created');
     }
 
+  //ensure migration object with new configuration
+  $temp_config = $migration->getSourceConfiguration();
+  $temp_config['urls'] = [$f->getFileUri()];
+  $temp_config['media_id'] = $media_id;
+  $migration->set('source', $temp_config);
+
   //capture current sourceIDs to process migration
   $src_plugin = $migration->getSourcePlugin();
   $src_plugin->rewind();
@@ -132,6 +138,6 @@ function ead_migration_uninstall() {
 function ead_migration_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.ead_migration':
-      return t('Provide Finding Aids migration to Drupal') ;
+      return t('Provide EAD xmls migration to Drupal') ;
   }
 }
