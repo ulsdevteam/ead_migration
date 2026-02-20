@@ -1,0 +1,617 @@
+langcode: en
+status: true
+dependencies: {  }
+id: ead_media_to_node
+class: null
+field_plugin_method: null
+cck_plugin_method: null
+migration_tags: null
+migration_group: ead_migration
+label: 'Import nodes from Media FindingAid XML files'
+source:
+  constants:
+    TITLE_SUFFIX: ' (EAD)'
+    Term_Model_uri: 'https://schema.org/DigitalDocument'
+    Term_Type_uri: 'http://purl.org/dc/dcmitype/Text'
+    Term_Genre_uri: 'http://vocab.getty.edu/page/aat/300249172'
+    Prefix_agent_rel: 'relators:'
+    Prefix_date_bulk: 'Bulk: '
+  plugin: media_xml_data
+  high_water_property:
+    name: file_changed
+    alias: fc
+  namespaces:
+    ead: 'urn:isbn:1-931666-22-9'
+    xlink: 'http://www.w3.org/1999/xlink'
+  item_selector: '/ead:ead'
+  fields:
+    -
+      name: src_unique_id
+      label: 'Unique ID'
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitid[@type='aspace_uri']"
+    -
+      name: src_name
+      label: Name
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unittitle"
+    -
+      name: src_fullname
+      selector: 'ead:eadheader/ead:filedesc/ead:titlestmt/ead:titleproper'
+    -
+      name: src_eadid
+      selector: 'ead:eadheader/ead:eadid'
+    -
+      name: src_callnumber
+      selector: "(ead:archdesc[@level='collection']/ead:did/ead:unitid[not(@*)]) | (ead:archdesc[@level='collection']/ead:did/ead:unitid[@type='collection'])"
+      multiple: true
+    -
+      name: src_persname
+      selector: "(ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator' or @label='creator' or @label='source']/ead:persname[not(@*)]) | (ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:persname[@role='cre'])"
+      multiple: true
+    -
+      name: src_persname_col
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator' or @label='source']/ead:persname[@role='col']"
+      multiple: true
+    -
+      name: src_persname_ive
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:persname[@role='ive']"
+      multiple: true
+    -
+      name: src_persname_ivr
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:persname[@role='ivr']"
+      multiple: true
+    -
+      name: src_persname_pht
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:persname[@role='pht']"
+      multiple: true
+    -
+      name: src_corpname
+      selector: "(ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator' or @label='creator' or @label='source']/ead:corpname[not(@*)]) | (ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:corpname[@role='cre'])"
+      multiple: true
+    -
+      name: src_corpname_pbl
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:corpname[@role='pbl']"
+      multiple: true
+    -
+      name: src_corpname_pht
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:corpname[@role='pht']"
+      multiple: true
+    -
+      name: src_corpname_dnr
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='source']/ead:corpname[@role='dnr']"
+      multiple: true
+    -
+      name: src_corpname_col
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='source']/ead:corpname[@role='col']"
+      multiple: true
+    -
+      name: src_famname
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:origination[@label='Creator']/ead:famname"
+      multiple: true
+    -
+      name: src_subjects_name
+      selector: "(ead:archdesc[@level='collection']/ead:controlaccess/*[self::ead:persname or self::ead:famname]) | (ead:archdesc[@level='collection']/ead:controlaccess/ead:controlaccess/*[self::ead:persname or self::ead:corpname])"
+      multiple: true
+    -
+      name: src_repo
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:repository/ead:corpname"
+    -
+      name: src_extent
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:physdesc/ead:extent"
+      multiple: true
+    -
+      name: src_language
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:langmaterial/ead:language"
+      multiple: true
+    -
+      name: src_abstract
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:abstract"
+    -
+      name: src_subjects
+      selector: "(ead:archdesc[@level='collection']/ead:controlaccess/*[self::ead:subject or self::ead:function or self::ead:occupation]) | (ead:archdesc[@level='collection']/ead:controlaccess/ead:controlaccess/ead:subject)"
+      multiple: true
+    -
+      name: src_subject_title
+      selector: "ead:archdesc[@level='collection']/ead:controlaccess/ead:title"
+    -
+      name: src_date_type
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitdate[@type='inclusive']/@type"
+    -
+      name: src_date_inclusive
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitdate[@type='inclusive']/@normal"
+    -
+      name: src_date
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitdate[not(@type)]/@normal"
+    -
+      name: src_date_bulk
+      selector: "ead:archdesc[@level='collection']/ead:did/ead:unitdate[@type='bulk']"
+    -
+      name: src_note_custodhist
+      selector: "ead:archdesc[@level='collection']/ead:custodhist/ead:head"
+    -
+      name: src_note_custodhist_detail
+      selector: "ead:archdesc[@level='collection']/ead:custodhist/ead:p"
+    -
+      name: src_note_material
+      selector: "ead:archdesc[@level='collection']/ead:relatedmaterial/ead:head"
+    -
+      name: src_note_material_detail
+      selector: "ead:archdesc[@level='collection']/ead:relatedmaterial/ead:p"
+    -
+      name: src_note_org_loc
+      selector: "ead:archdesc[@level='collection']/ead:originalsloc/ead:head"
+    -
+      name: src_note_org_loc_detail
+      selector: "ead:archdesc[@level='collection']/ead:originalsloc/ead:p"
+    -
+      name: src_scope_content
+      selector: "ead:archdesc[@level='collection']/ead:scopecontent/ead:p"
+    -
+      name: src_prefercite
+      selector: "ead:archdesc[@level='collection']/ead:prefercite/ead:p"
+    -
+      name: src_geogname
+      selector: "(ead:archdesc[@level='collection']/ead:controlaccess/ead:geogname) | (ead:archdesc[@level='collection']/ead:controlaccess/ead:controlaccess/ead:geogname)"
+      multiple: true
+    -
+      name: src_genreform
+      selector: "ead:archdesc[@level='collection']/ead:controlaccess/ead:genreform"
+      multiple: true
+process:
+  title:
+    plugin: concat
+    source:
+      - src_name
+      - constants/TITLE_SUFFIX
+  status:
+    plugin: default_value
+    default_value: 0
+  field_full_title: src_fullname
+  temp_linked_corp:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_corpname
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_corpname
+      value_key: name
+      bundle_key: vid
+      bundle: corporate_body
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_corp:
+    plugin: linked_agent_helper
+    source: '@temp_linked_corp'
+    rel_type: cre
+  temp_linked_corp_pbl:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_corpname_pbl
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_corpname_pbl
+      value_key: name
+      bundle_key: vid
+      bundle: corporate_body
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_corp_pbl:
+    plugin: linked_agent_helper
+    source: '@temp_linked_corp_pbl'
+    rel_type: pbl
+  temp_linked_corp_pht:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_corpname_pht
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_corpname_pht
+      value_key: name
+      bundle_key: vid
+      bundle: corporate_body
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_corp_pht:
+    plugin: linked_agent_helper
+    source: '@temp_linked_corp_pht'
+    rel_type: pht
+  temp_linked_corp_dnr:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_corpname_dnr
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_corpname_dnr
+      value_key: name
+      bundle_key: vid
+      bundle: corporate_body
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_corp_dnr:
+    plugin: linked_agent_helper
+    source: '@temp_linked_corp_dnr'
+    rel_type: dnr
+  temp_linked_corp_col:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_corpname_col
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_corpname_col
+      value_key: name
+      bundle_key: vid
+      bundle: corporate_body
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_corp_col:
+    plugin: linked_agent_helper
+    source: '@temp_linked_corp_col'
+    rel_type: col
+  temp_linked_family:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_famname
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_famname
+      value_key: name
+      bundle_key: vid
+      bundle: family
+      ignore_case: true
+      access_check: false
+  temp_linked_rel_family:
+    plugin: linked_agent_helper
+    source: '@temp_linked_family'
+    rel_type: cre
+  temp_linked_agent:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_persname
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_persname
+      value_key: name
+      bundle_key: vid
+      bundle: person
+  temp_linked_agent_cre:
+    plugin: linked_agent_helper
+    source: '@temp_linked_agent'
+    rel_type: cre
+  temp_linked_agent_col:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_persname_col
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_persname_col
+      value_key: name
+      bundle_key: vid
+      bundle: person
+  temp_linked_rel_col:
+    plugin: linked_agent_helper
+    source: '@temp_linked_agent_col'
+    rel_type: col
+  temp_linked_agent_ive:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_persname_ive
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_persname_ive
+      value_key: name
+      bundle_key: vid
+      bundle: person
+  temp_linked_rel_ive:
+    plugin: linked_agent_helper
+    source: '@temp_linked_agent_ive'
+    rel_type: ive
+  temp_linked_agent_ivr:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_persname_ivr
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_persname_ivr
+      value_key: name
+      bundle_key: vid
+      bundle: person
+  temp_linked_rel_ivr:
+    plugin: linked_agent_helper
+    source: '@temp_linked_agent_ivr'
+    rel_type: ivr
+  temp_linked_agent_pht:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_persname_pht
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_persname_pht
+      value_key: name
+      bundle_key: vid
+      bundle: person
+  temp_linked_rel_pht:
+    plugin: linked_agent_helper
+    source: '@temp_linked_agent_pht'
+    rel_type: pht
+  field_linked_agent:
+    plugin: merge
+    source:
+      - '@temp_linked_agent_cre'
+      - '@temp_linked_rel_col'
+      - '@temp_linked_rel_ive'
+      - '@temp_linked_rel_ivr'
+      - '@temp_linked_rel_pht'
+      - '@temp_linked_rel_corp'
+      - '@temp_linked_rel_corp_pbl'
+      - '@temp_linked_rel_corp_dnr'
+      - '@temp_linked_rel_corp_pht'
+      - '@temp_linked_rel_corp_col'
+      - '@temp_linked_rel_family'
+  output_test:
+    plugin: callback
+    callable: var_dump
+    source:
+      - '@field_linked_agent'
+  field_scope_content:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_scope_content
+    -
+      plugin: get
+      source: src_scope_content
+  field_source_citation: src_prefercite
+  temp_note_custodhist:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_note_custodhist
+    -
+      plugin: concat
+      source:
+        - src_note_custodhist
+        - src_note_custodhist_detail
+      delimiter: ': '
+  temp_note_materials:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_note_material
+    -
+      plugin: concat
+      source:
+        - src_note_material
+        - src_note_material_detail
+      delimiter: ': '
+  temp_note_org_loc:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_note_org_loc
+    -
+      plugin: concat
+      source:
+        - src_note_org_loc
+        - src_note_org_loc_detail
+      delimiter: ': '
+  field_note:
+    -
+      plugin: callback
+      callable: array_filter
+      source:
+        - '@temp_note_custodhist'
+        - '@temp_note_materials'
+        - '@temp_note_org_loc'
+    -
+      plugin: concat
+      delimiter: ''
+  tmp_src_date_inc: src_date_inclusive
+  tmp_src_date: src_date
+  field_source_repository:
+    -
+      plugin: skip_on_empty
+      source: src_repo
+      method: process
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_repo
+      value_key: name
+      bundle_key: vid
+      bundle: source_repository
+      ignore_case: true
+      access_check: false
+  field_extent: src_extent
+  field_description_long: src_abstract
+  field_subject:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_subjects
+    -
+      plugin: callback
+      callable: trim
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_subjects
+      value_key: name
+      bundle_key: vid
+      bundle: Subject
+      ignore_case: true
+      access_check: false
+  field_subject_title:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_subject_title
+    -
+      plugin: callback
+      callable: trim
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      value_key: name
+      bundle_key: vid
+      bundle: subject_title
+      ignore_case: true
+      access_check: false
+  field_subjects_name:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_subjects_name
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_subjects_name
+      value_key: name
+      bundle_key: vid
+      bundle:
+        - person
+        - family
+        - corporate_body
+      ignore_case: true
+      access_check: false
+  field_edtf_date:
+    -
+      plugin: callback
+      callable: array_filter
+      source:
+        - '@tmp_src_date_inc'
+        - '@tmp_src_date'
+    -
+      plugin: default_value
+      default_value: ''
+  field_date_notes_bulk:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_date_bulk
+    -
+      plugin: concat
+      source:
+        - constants/Prefix_date_bulk
+        - src_date_bulk
+  field_resource_type:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Type_uri
+    value_key: field_external_uri
+    bundle_key: vid
+    bundle: resource_types
+    ignore_case: true
+    access_check: false
+  field_local_identifier: src_unique_id
+  field_model:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Model_uri
+    value_key: field_external_uri
+    bundle_key: vid
+    bundle: islandora_models
+    ignore_case: true
+    access_check: false
+  field_genre:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: constants/Term_Genre_uri
+    value_key: field_authority_link
+    bundle_key: vid
+    bundle: genre
+    ignore_case: true
+    access_check: false
+  field_language:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: src_language
+    value_key: name
+    bundle_key: vid
+    bundle: language
+    ignore_case: true
+    access_check: false
+  field_pid: src_eadid
+  field_source_collection:
+    plugin: entity_lookup
+    entity_type: taxonomy_term
+    source: src_name
+    value_key: name
+    bundle_key: vid
+    bundle: source_collection
+    ignore_case: true
+    access_check: false
+  field_source_collection_id:
+    -
+      plugin: skip_on_empty
+      method: process
+      source: src_callnumber
+    -
+      plugin: callback
+      callable: trim
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      value_key: name
+      bundle_key: vid
+      bundle: source_collection_identifier
+      ignore_case: true
+      access_check: false
+  field_geographic_subject:
+    -
+      plugin: skip_on_empty
+      source: src_geogname
+      method: process
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      value_key: name
+      bundle_key: vid
+      bundle: geo_location
+      ignore_case: true
+      access_check: false
+  field_subject_genre:
+    -
+      plugin: skip_on_empty
+      source: src_genreform
+      method: process
+    -
+      plugin: entity_lookup
+      entity_type: taxonomy_term
+      source: src_genreform
+      value_key: name
+      bundle_key: vid
+      bundle: subject_genre
+      ignore_case: true
+      access_check: false
+destination:
+  plugin: 'entity:node'
+  default_bundle: islandora_object
+overwrite_properties:
+  - field_full_title
+  - field_subject
+  - field_scope_content
+  - field_subject_genre
+  - field_note
+  - field_extent
+  - field_geographic_subject
