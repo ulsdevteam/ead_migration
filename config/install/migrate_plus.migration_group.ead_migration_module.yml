@@ -1,5 +1,0 @@
-id: ead_migration_module
-label: 'EAD Migration'
-description: 'A module to migrate Finding Aids from EAD sources.'
-source_type: 'EAD source'
-shared_configuration: null

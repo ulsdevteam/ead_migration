@@ -1,0 +1,6 @@
+services:
+  ead_migration.migration_subscriber:
+    class: Drupal\ead_migration\EventSubscriber\eadEventSubscriber
+    arguments: ['@entity_type.manager']
+    tags:
+      - { name: event_subscriber }
