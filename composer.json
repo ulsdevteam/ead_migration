@@ -1,0 +1,9 @@
+{
+  "name": "drupal/ead_migration",
+  "type": "drupal-module-custom",
+  "description": "A custom module to migrate findingaid media with EAD xml file into Drupal",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0-or-later",
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
