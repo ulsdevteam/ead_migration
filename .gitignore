@@ -4,6 +4,5 @@
 # Ignore IDE files
 .vscode/
 
-# Ignore logs
-*.log
+*.png
 

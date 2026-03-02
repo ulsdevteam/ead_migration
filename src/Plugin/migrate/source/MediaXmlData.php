@@ -215,43 +215,59 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       return $data;
     }
 
-    // Load XML
-    libxml_use_internal_errors(TRUE);
-    $xml = simplexml_load_file($file_path);
-    
-    if ($xml === FALSE) {
-      foreach (libxml_get_errors() as $error) {
-        \Drupal::logger('custom_migration')->error('XML parsing error: @error', ['@error' => $error->message]);
-      }
+    // Check item selector configuration
+    if (!isset($this->configuration['item_selector'])) {
+      \Drupal::logger('ead_migration')->error(
+        'configuration "item_selector" is not defined in migration configuration. Cannot process @file.',
+        ['@file' => $file_path]
+      );
+      return $data; 
+    }
+    $item_selector = $this->configuration['item_selector'];
+
+    // Save the current error handling state
+    $previous = libxml_use_internal_errors(TRUE);
+    try { 
+      // Clear any previous XML errors then load xml
       libxml_clear_errors();
-      return $data;
-    }
-
-    // Register namespaces to SimpleXmlelements
-    $namespaces = [];
-    if (isset($this->configuration['namespaces'])) {
-      $namespaces = $this->configuration['namespaces'];
-      foreach ($namespaces as $prefix => $namespace) {
-        $xml->registerXPathNamespace($prefix, $namespace);
-      }
-    }
-
-    // Get item selector
-    $item_selector = $this->configuration['item_selector'] ?? '//ead:ead';
-    $items = $xml->xpath($item_selector);
-
-    if (empty($items)) {
-      $items = [$xml];
-    }
-
-    // Process each item
-    foreach ($items as $index => $item) {
-      $row_data = [
-        'media_id' => $media_id,
-        'file_changed' => $file_changed,
-      ];
+      $xml = simplexml_load_file($file_path);
+      //log errors
+      if ($xml === FALSE) {
+        foreach (libxml_get_errors() as $error) {
+          \Drupal::logger('ead_migration')->error('XML parsing error: @error in @file: @line', ['@error' => $error->message, '@file' => $file_path, '@line' => $error->line,]);
+        }
+        libxml_clear_errors();
+        // Restore previous state
+        return $data;
+        }
       
-      // register namespaces on each elements
+      libxml_clear_errors();
+      // Register namespaces to SimpleXmlelements
+      $namespaces = [];
+      if (isset($this->configuration['namespaces'])) {
+        $namespaces = $this->configuration['namespaces'];
+        foreach ($namespaces as $prefix => $namespace) {
+          $xml->registerXPathNamespace($prefix, $namespace);
+        }
+      }
+
+      $items = $xml->xpath($item_selector);
+      if (empty($items)) {
+        \Drupal::logger('ead_migration')->notice(
+          'XPath selector "@selector" returned no items for @file. Using root element as fallback.',
+          ['@selector' => $item_selector, '@file' => $file_path]
+        );
+        $items = [$xml];
+     }
+
+     // Process each item
+      foreach ($items as $index => $item) {
+        $row_data = [
+          'media_id' => $media_id,
+          'file_changed' => $file_changed,
+        ];
+      
+      // Register namespaces on each elements
       if (!empty($namespaces)) {
         foreach ($namespaces as $prefix => $namespace) {
           $item->registerXPathNamespace($prefix, $namespace);
@@ -287,8 +303,10 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       
       $data[] = $row_data;
     }
-
-    return $data;
+  } finally { 
+    //restore the previous state
+    libxml_use_internal_errors($previous);
+    }
+  return $data;
   }
-
 }
