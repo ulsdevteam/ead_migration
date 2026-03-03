@@ -65,7 +65,10 @@ class eadEventSubscriber implements EventSubscriberInterface {
           // Set the reference to the destination node
           $media->set('field_media_of', ['target_id' => $node_id]);
           $media->save();
+          \Drupal::logger('ead_migration')->info('Successfully saved media @mid with referencing node @nid',['@mid' => $media_id, '@nid' => $node_id]);
         }
+      } else {
+        \Drupal::logger('ead_migration')->error('Failed to update field_media_of for media @mid',['@mid' => $media_id,]);
       }
     }
   }

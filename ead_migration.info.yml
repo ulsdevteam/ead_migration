@@ -1,6 +1,6 @@
 type: module
 name: EAD Migration
-description: 'Migration Finding Aid XML from Media into Drupal'
+description: 'Migration archival description from Finding Aid (EAD) media files into drupal nodes'
 package: Custom
 core_version_requirement: ^9 || ^10 || ^11
 dependencies:

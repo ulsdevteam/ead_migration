@@ -1,6 +1,9 @@
+uuid: c67c87a2-336c-4843-a24a-de72cd7adf63
 langcode: en
 status: true
 dependencies: {  }
+_core:
+  default_config_hash: u2ty9gH0g7tAYcPmBEgwEEfOiIG_0aAu2Q-pgEJeTCA
 id: ead_media_to_node
 class: null
 field_plugin_method: null
@@ -367,11 +370,6 @@ process:
       - '@temp_linked_rel_corp_pht'
       - '@temp_linked_rel_corp_col'
       - '@temp_linked_rel_family'
-  output_test:
-    plugin: callback
-    callable: var_dump
-    source:
-      - '@field_linked_agent'
   field_scope_content:
     -
       plugin: skip_on_empty
@@ -606,11 +604,28 @@ process:
 destination:
   plugin: 'entity:node'
   default_bundle: islandora_object
-overwrite_properties:
-  - field_full_title
-  - field_subject
-  - field_scope_content
-  - field_subject_genre
-  - field_note
-  - field_extent
-  - field_geographic_subject
+  overwrite_properties:
+    - field_full_title
+    - field_linked_agent
+    - field_source_citation
+    - field_source_repository
+    - field_subject
+    - field_scope_content
+    - field_subject_genre
+    - field_subject_title
+    - field_subjects_name
+    - field_edtf_date
+    - field_date_notes_bulk
+    - field_resource_type
+    - field_note
+    - field_extent
+    - field_geographic_subject
+    - field_description_long
+    - field_local_identifier
+    - field_language
+    - field_pid
+    - field_source_collection
+    - field_source_collection_id
+idMap: {  }
+migration_dependencies: null
+include: null
