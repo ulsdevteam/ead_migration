@@ -1,27 +1,27 @@
+uuid: c67c87a2-336c-4843-a24a-de72cd7adf63
 langcode: en
 status: true
 dependencies: {  }
-id: ead_source_ns
+_core:
+  default_config_hash: u2ty9gH0g7tAYcPmBEgwEEfOiIG_0aAu2Q-pgEJeTCA
+id: ead_media_to_node
 class: null
 field_plugin_method: null
 cck_plugin_method: null
 migration_tags: null
-migration_group: ead_migration_module
-label: 'Migration EAD source from public FS'
+migration_group: ead_migration
+label: 'Import nodes from Media FindingAid XML files'
 source:
   constants:
-    TITLE_SUFFIX: ' (EAD)'
+    TITLE_SUFFIX: ' (Finding Aid)'
     Term_Model_uri: 'https://schema.org/DigitalDocument'
     Term_Type_uri: 'http://purl.org/dc/dcmitype/Text'
     Term_Genre_uri: 'http://vocab.getty.edu/page/aat/300249172'
-    Prefix_agent_rel: 'relators:'
     Prefix_date_bulk: 'Bulk: '
-  plugin: url
-  data_fetcher_plugin: file
-  data_parser_plugin: simple_xml
-  urls:
-    - 'public://ead_xmls/ead_data_ns.xml'
-    - 'public://ead_xmls/ead_data_02.xml'
+  plugin: media_xml_data
+  high_water_property:
+    name: file_changed
+    alias: fc
   namespaces:
     ead: 'urn:isbn:1-931666-22-9'
     xlink: 'http://www.w3.org/1999/xlink'
@@ -158,9 +158,6 @@ source:
       name: src_genreform
       selector: "ead:archdesc[@level='collection']/ead:controlaccess/ead:genreform"
       multiple: true
-  ids:
-    src_unique_id:
-      type: string
 process:
   title:
     plugin: concat
@@ -373,11 +370,6 @@ process:
       - '@temp_linked_rel_corp_pht'
       - '@temp_linked_rel_corp_col'
       - '@temp_linked_rel_family'
-  output_test:
-    plugin: callback
-    callable: var_dump
-    source:
-      - '@field_linked_agent'
   field_scope_content:
     -
       plugin: skip_on_empty
@@ -612,5 +604,28 @@ process:
 destination:
   plugin: 'entity:node'
   default_bundle: islandora_object
+  overwrite_properties:
+    - field_full_title
+    - field_linked_agent
+    - field_source_citation
+    - field_source_repository
+    - field_subject
+    - field_scope_content
+    - field_subject_genre
+    - field_subject_title
+    - field_subjects_name
+    - field_edtf_date
+    - field_date_notes_bulk
+    - field_resource_type
+    - field_note
+    - field_extent
+    - field_geographic_subject
+    - field_description_long
+    - field_local_identifier
+    - field_language
+    - field_pid
+    - field_source_collection
+    - field_source_collection_id
+idMap: {  }
 migration_dependencies: null
 include: null
