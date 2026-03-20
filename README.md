@@ -8,22 +8,23 @@ This module enables users to automatically generate Repository Item nodes from D
 
 ### Prerequisites
 Before using this module, the following must be in place:
-1. Media Type
-Users need create a 'Finding Aid' Media type in Drupal if not existing
-- Go to Drupal Site->Administration->Structure->Media types: Add Media types
-- Setup type configurations:  
-  Name: Finding Aid
-  Media source: File
-- Add required fields under 'Manage fields' with the following configurations:
-   - field_media_file 
-     * Field Storage: Select 'Private files' under 'Upload destination' Option
-     * Allowed file extensions: xml
-     * File directory: findingaid (or your configured private directory)
-   - field_media_of - Entity reference field 
+
+1. Media Type 
+  Users need create a 'Finding Aid' Media type (machine name: `findingaid`) in Drupal if not existing
+  - Go to Drupal Site->Administration->Structure->Media types: Add Media types
+  - Setup type configurations:  
+    Name: FindingAid
+    Media source: File
+  - Add required fields under 'Manage fields' with the following configurations:
+     - field_media_file 
+       * Field Storage: Select 'Private files' under 'Upload destination' Option
+       * Allowed file extensions: xml
+       * File directory: findingaid (or your configured private directory)
+     - field_media_of - Entity reference field 
 2. Finding Aid Type Media
-Users must have Finding Aid Media records created in Drupal with the following configuration:
-- field_media_file - File field containing the EAD XML file
-- field_media_of - automatically populated by migration to link back to the Repository Item 
+  Users must have Finding Aid Media records created in Drupal with the following configuration:
+  - field_media_file - File field containing the EAD XML file
+  - field_media_of - automatically populated by migration to link back to the Repository Item 
  
 ## Module Usage
 1. Install and enable the module in Drupal container
