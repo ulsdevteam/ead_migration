@@ -16,7 +16,7 @@ source:
     TITLE_SUFFIX: ' (Finding Aid)'
     Term_Model_uri: 'https://schema.org/DigitalDocument'
     Term_Type_uri: 'http://purl.org/dc/dcmitype/Text'
-    Term_Genre_uri: 'http://vocab.getty.edu/page/aat/300249172'
+    Term_Genre_uri: 'http://vocab.getty.edu/page/aat/300026539'
     Prefix_date_bulk: 'Bulk: '
   plugin: media_xml_data
   high_water_property:
