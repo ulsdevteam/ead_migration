@@ -61,29 +61,21 @@ class eadEventSubscriber implements EventSubscriberInterface {
     $DestIds = $id_map->lookupDestinationIds($sourceIdvalues);
 
     if (!empty($DestIds) && !empty(array_filter($DestIds[0]))) {
+     return;
+   }
+   $media = $this->entityTypeManager->getStorage('media')->load($mediaId);
+   if (!$media || !$media->hasField('field_media_of')) {
     return;
-  }
+   }
 
-  $this->logger->info(
-      'PRE_ROW_SAVE: Source mid=@mid has NULL destid — checking field_media_of.',
-      ['@mid' => $mediaId]
-    );
-  $media = $this->entityTypeManager->getStorage('media')->load($mediaId);
-
-  if (!$media || !$media->hasField('field_media_of')) {
+   $referenced_nodes = $media->get('field_media_of')->referencedEntities();
+   if (empty($referenced_nodes)) {
     return;
-  }
+   }
+   $existing_node = reset($referenced_nodes);
+   $existing_nid = $existing_node->id();
 
-  $referenced_nodes = $media->get('field_media_of')->referencedEntities();
-
-  if (empty($referenced_nodes)) {
-    return;
-  }
-
-  $existing_node = reset($referenced_nodes);
-  $existing_nid = $existing_node->id();
-
-  if ($existing_node->bundle() !== self::EXPECTED_NODE_TYPE) {
+   if ($existing_node->bundle() !== self::EXPECTED_NODE_TYPE) {
     \Drupal::logger('ead_migration')->warning(
       'Media @mid references node @nid but it is bundle "@bundle", skipping pre-map.',
       ['@mid' => $media_id, '@nid' => $existing_nid, '@bundle' => $existing_node->bundle()]
