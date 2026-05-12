@@ -1,19 +1,19 @@
 # EAD Migration
 
-The module extracts Drupal media entities of type Finding Aid that contain EAD file attachments (in .xml format) and migrates them into repository item nodes in the modern Islandora site. For each Finding Aid media item, a corresponding new Drupal node entity is created during the migration. The migrated node is then linked back to the original Finding Aid media via the Media Of field.
-To manage incremental updates, the module uses the file_updated timestamp of the attached media file as a high-water mark. Only media items whose attached file has a file_updated value greater than the current high‑water mark are imported or updated during migration.
+The module extracts Drupal media entities of type Finding Aid that contain EAD file attachments (in .xml format) and migrates them into repository item nodes in the modern Islandora site. For each Finding Aid media item, if there is no "Media Of" node linked, a corresponding new Drupal node entity is created during the migration. The migrated node is also linked back to the original Finding Aid media via the Media Of field. For media items that already have a linked "Media Of" node, the migration will update that existing node accordingly. 
+
+To manage incremental updates, the module uses the file_updated timestamp of the attached media file as a high-water mark. Only media items whose attached file has a file_updated value greater than the current highWater mark are imported or updated during migration.
 
 ## Requirements
 This module enables users to automatically generate Repository Item nodes from Drupal Media records containing EAD (Encoded Archival Description) XML files.
 
 ### Prerequisites
 Before using this module, the following must be in place:
-
-1. Media Type 
-  Users need create a 'Finding Aid' Media type (machine name: `findingaid`) in Drupal if not existing
+1. Media Type
+ Users need create a 'Finding Aid' Media type (machine name: `findingaid`) in Drupal if not existing
   - Go to Drupal Site->Administration->Structure->Media types: Add Media types
   - Setup type configurations:  
-    Name: FindingAid
+    Name: Finding Aid
     Media source: File
   - Add required fields under 'Manage fields' with the following configurations:
      - field_media_file 
@@ -22,7 +22,7 @@ Before using this module, the following must be in place:
        * File directory: findingaid (or your configured private directory)
      - field_media_of - Entity reference field 
 2. Finding Aid Type Media
-  Users must have Finding Aid Media records created in Drupal with the following configuration:
+ Users must have Finding Aid Media records created in Drupal with the following configuration:
   - field_media_file - File field containing the EAD XML file
   - field_media_of - automatically populated by migration to link back to the Repository Item 
  
@@ -35,4 +35,4 @@ Before using this module, the following must be in place:
    - Goto Admin->Extend, search 'EAD Migration', and Click to install
 
 ## Migration dataflow
-   -  ![ead migration dataflow](dataflow/ead-migration-dataflow.png)
+    -  ![ead migration dataflow](dataflow/ead-migration-dataflow.png)
