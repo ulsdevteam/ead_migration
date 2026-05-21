@@ -7,6 +7,7 @@ use Drupal\migrate\Event\MigratePreRowSaveEvent;
 use Drupal\migrate\Event\MigratePostRowSaveEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\migrate\Plugin\MigrateIdMapInterface; 
 
 /**
  * Event subscriber to update Media entities after node creation.
