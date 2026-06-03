@@ -39,6 +39,8 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
    * @var array
    */
   protected $parsedData = [];
+  protected string $eadXmlDir;
+  const SAVE_BASE_URI = 'private://findingaid';
 
   /**
    * {@inheritdoc}
@@ -47,6 +49,15 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     parent::__construct($configuration, $plugin_id, $plugin_definition, $migration);
     $this->entityTypeManager = $entity_type_manager;
     $this->fileSystem = $file_system;
+
+    //handle field uri scheme
+    $fieldConfig = \Drupal::entityTypeManager()
+    ->getStorage('field_config')
+    ->load("media.findingaid.field_media_file");
+
+    $f_uri_scheme = ($fieldConfig === null) ? 'private' : ($fieldConfig->getSetting('uri_scheme') ?? 'private');
+    $f_sub_dir = ($fieldConfig === null) ? 'findingaid' : ($fieldConfig->getSetting('file_directory') ?? 'findingaid');
+    $this->eadXmlDir = $f_uri_scheme . '://' . trim($f_sub_dir, '/');
   }
 
   /**
@@ -127,6 +138,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       \Drupal::logger('ead_migration')->notice('No media entities found with bundle "findingaid".');
       return;
     }
+
     foreach ($media_ids as $media_id) {
       $media = $media_storage->load($media_id);
       
@@ -136,7 +148,8 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
         
         if ($file) {
           $file_uri = $file->getFileUri();
-          $file_path = $this->fileSystem->realpath($file_uri);
+          
+          //$file_path = $this->fileSystem->realpath($file_uri);
           $file_changed = $file->getChangedTime();
           
           // Determine if we should process this media
@@ -149,10 +162,10 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
           // Check if it's an XML file
           $mime_type = $file->getMimeType();
           if (in_array($mime_type, ['application/xml', 'text/xml']) || 
-              pathinfo($file_path, PATHINFO_EXTENSION) === 'xml') {
+              pathinfo($file_uri, PATHINFO_EXTENSION) === 'xml') {
             
             // Parse the XML file
-            $xml_data = $this->parseXmlFile($file_path, $media_id, $file_changed);
+            $xml_data = $this->parseXmlFile($file_uri, $media_id, $file_changed);
             if ($xml_data) {
               $this->parsedData = array_merge($this->parsedData, $xml_data);
             }
@@ -202,16 +215,16 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
   /**
    * Parse an XML file and extract data based on configuration.
    *
-   * @param string $file_path
+   * @param string $file_uri
    * @param int $media_id
    * @param int $file_changed
    *
    * @return array: Parsed data array.
    */
-  protected function parseXmlFile($file_path, $media_id, $file_changed) {
+  protected function parseXmlFile($file_uri, $media_id, $file_changed) {
     $data = [];
     
-    if (!file_exists($file_path)) {
+    if (!file_exists($file_uri)) {
       return $data;
     }
 
@@ -219,7 +232,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     if (!isset($this->configuration['item_selector'])) {
       \Drupal::logger('ead_migration')->error(
         'configuration "item_selector" is not defined in migration configuration. Cannot process @file.',
-        ['@file' => $file_path]
+        ['@file' => $file_uri]
       );
       return $data; 
     }
@@ -228,13 +241,21 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     // Save the current error handling state
     $previous = libxml_use_internal_errors(TRUE);
     try { 
+      
+      $xmlContent = file_get_contents($file_uri); //Raw file contents via stream wrapper URI e.g. s3
+      //$xml = simplexml_load_file($file_path);
+      if ($xmlContent === FALSE || empty($xmlContent)) {
+        \Drupal::logger('ead_migration')->error('Failed to read xml contents from URI: @uri', ['@uri' => $file_uri]);
+        return $data;
+      }
+      
       // Clear any previous XML errors then load xml
       libxml_clear_errors();
-      $xml = simplexml_load_file($file_path);
+      $xml = simplexml_load_string($xmlContent);
       //log errors
-      if ($xml === FALSE) {
+      if ($xml === FALSE || empty($xml)) {
         foreach (libxml_get_errors() as $error) {
-          \Drupal::logger('ead_migration')->error('XML parsing error: @error in @file: @line', ['@error' => $error->message, '@file' => $file_path, '@line' => $error->line,]);
+          \Drupal::logger('ead_migration')->error('XML parsing error: @error in @file: @line', ['@error' => $error->message, '@file' => $file_uri, '@line' => $error->line,]);
         }
         libxml_clear_errors();
         // Restore previous state
@@ -242,6 +263,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
         }
       
       libxml_clear_errors();
+
       // Register namespaces to SimpleXmlelements
       $namespaces = [];
       if (isset($this->configuration['namespaces'])) {
@@ -255,7 +277,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       if (empty($items)) {
         \Drupal::logger('ead_migration')->notice(
           'XPath selector "@selector" returned no items for @file. Using root element as fallback.',
-          ['@selector' => $item_selector, '@file' => $file_path]
+          ['@selector' => $item_selector, '@file' => $file_uri]
         );
         $items = [$xml];
      }
