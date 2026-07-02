@@ -5,6 +5,7 @@ migration_group: ead_migration
 label: 'Import nodes from Media FindingAid XML files'
 source:
   constants:
+    ID_PREFIX: 'pitt:'
     Term_Model_uri: 'https://schema.org/DigitalDocument'
     Term_Type_uri: 'http://purl.org/dc/dcmitype/Text'
     Term_Genre_uri:
@@ -537,7 +538,11 @@ process:
     bundle: language
     ignore_case: true
     access_check: false
-  field_pid: src_eadid
+  field_pid:
+    plugin: concat
+    source:
+      - constants/ID_PREFIX
+      - src_eadid
   field_source_collection:
     plugin: entity_lookup
     entity_type: taxonomy_term
