@@ -13,9 +13,7 @@ source:
       - 'http://vocab.getty.edu/page/aat/300026539'
     Prefix_date_bulk: 'Bulk: '
   plugin: media_xml_data
-  high_water_property:
-    name: file_changed
-    alias: fc
+  track_changes: true
   namespaces:
     ead: 'urn:isbn:1-931666-22-9'
     xlink: 'http://www.w3.org/1999/xlink'

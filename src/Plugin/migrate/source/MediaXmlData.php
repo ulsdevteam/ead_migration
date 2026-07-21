@@ -39,8 +39,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
    * @var array
    */
   protected $parsedData = [];
-  protected string $eadXmlDir;
-  const SAVE_BASE_URI = 'private://findingaid';
 
   /**
    * {@inheritdoc}
@@ -49,15 +47,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     parent::__construct($configuration, $plugin_id, $plugin_definition, $migration);
     $this->entityTypeManager = $entity_type_manager;
     $this->fileSystem = $file_system;
-
-    //handle field uri scheme
-    $fieldConfig = \Drupal::entityTypeManager()
-    ->getStorage('field_config')
-    ->load("media.findingaid.field_media_file");
-
-    $f_uri_scheme = ($fieldConfig === null) ? 'private' : ($fieldConfig->getSetting('uri_scheme') ?? 'private');
-    $f_sub_dir = ($fieldConfig === null) ? 'findingaid' : ($fieldConfig->getSetting('file_directory') ?? 'findingaid');
-    $this->eadXmlDir = $f_uri_scheme . '://' . trim($f_sub_dir, '/');
   }
 
   /**
@@ -152,13 +141,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
           //$file_path = $this->fileSystem->realpath($file_uri);
           $file_changed = $file->getChangedTime();
           
-          // Determine if we should process this media
-          $should_process = $this->shouldProcessMedia($media, $file_changed);
-          
-          if (!$should_process) {
-            continue;
-          }
-          
           // Check if it's an XML file
           $mime_type = $file->getMimeType();
           if (in_array($mime_type, ['application/xml', 'text/xml']) || 
@@ -173,43 +155,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
         }
       }
     }
-  }
-
-  /**
-   * Determine if a media entity should be processed.
-   *
-   * @param \Drupal\media\Entity\Media $media: media entity
-   * @param int $file_changed: file changed timestamp.
-   *
-   * @return bool: TRUE if should process, FALSE otherwise.
-   */
-  protected function shouldProcessMedia($media, $file_changed) {
-    // Check if media has an associated node in field_media_of
-    if ($media->hasField('field_media_of') && !$media->get('field_media_of')->isEmpty()) {
-      $node_id = $media->get('field_media_of')->target_id;
-      $node_storage = $this->entityTypeManager->getStorage('node');
-      $node = $node_storage->load($node_id);
-      
-      if ($node) {
-        $node_changed = $node->getChangedTime();
-        
-        // Process if file timestamp is greater than node timestamp
-        // This will trigger a reimport and override the existing node
-        if ($file_changed > $node_changed) {
-          return TRUE;
-        }
-        
-        // File hasn't changed since node was last updated, skip
-        return FALSE;
-      }
-      
-      // Referenced node doesn't exist, should process
-      return TRUE;
-    }
-    
-    // No associated node (field_media_of is empty)
-    // Always process to create new node
-    return TRUE;
   }
 
   /**
