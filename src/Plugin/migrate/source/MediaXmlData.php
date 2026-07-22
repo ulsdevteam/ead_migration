@@ -39,8 +39,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
    * @var array
    */
   protected $parsedData = [];
-  protected string $eadXmlDir;
-  const SAVE_BASE_URI = 'private://findingaid';
 
   /**
    * {@inheritdoc}
@@ -49,15 +47,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     parent::__construct($configuration, $plugin_id, $plugin_definition, $migration);
     $this->entityTypeManager = $entity_type_manager;
     $this->fileSystem = $file_system;
-
-    //handle field uri scheme
-    $fieldConfig = \Drupal::entityTypeManager()
-    ->getStorage('field_config')
-    ->load("media.findingaid.field_media_file");
-
-    $f_uri_scheme = ($fieldConfig === null) ? 'private' : ($fieldConfig->getSetting('uri_scheme') ?? 'private');
-    $f_sub_dir = ($fieldConfig === null) ? 'findingaid' : ($fieldConfig->getSetting('file_directory') ?? 'findingaid');
-    $this->eadXmlDir = $f_uri_scheme . '://' . trim($f_sub_dir, '/');
   }
 
   /**
