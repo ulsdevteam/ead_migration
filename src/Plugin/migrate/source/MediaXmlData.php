@@ -138,16 +138,13 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
         if ($file) {
           $file_uri = $file->getFileUri();
           
-          //$file_path = $this->fileSystem->realpath($file_uri);
-          $file_changed = $file->getChangedTime();
-          
           // Check if it's an XML file
           $mime_type = $file->getMimeType();
           if (in_array($mime_type, ['application/xml', 'text/xml']) || 
               pathinfo($file_uri, PATHINFO_EXTENSION) === 'xml') {
             
             // Parse the XML file
-            $xml_data = $this->parseXmlFile($file_uri, $media_id, $file_changed);
+            $xml_data = $this->parseXmlFile($file_uri, $media_id);
             if ($xml_data) {
               $this->parsedData = array_merge($this->parsedData, $xml_data);
             }
@@ -162,11 +159,10 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
    *
    * @param string $file_uri
    * @param int $media_id
-   * @param int $file_changed
    *
    * @return array: Parsed data array.
    */
-  protected function parseXmlFile($file_uri, $media_id, $file_changed) {
+  protected function parseXmlFile($file_uri, $media_id) {
     $data = [];
     
     if (!file_exists($file_uri)) {
@@ -188,7 +184,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     try { 
       
       $xmlContent = file_get_contents($file_uri); //Raw file contents via stream wrapper URI e.g. s3
-      //$xml = simplexml_load_file($file_path);
       if ($xmlContent === FALSE || empty($xmlContent)) {
         \Drupal::logger('ead_migration')->error('Failed to read xml contents from URI: @uri', ['@uri' => $file_uri]);
         return $data;
@@ -231,7 +226,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       foreach ($items as $index => $item) {
         $row_data = [
           'media_id' => $media_id,
-          'file_changed' => $file_changed,
+          'file_path' => $file_uri,
         ];
       
       // Register namespaces on each elements
