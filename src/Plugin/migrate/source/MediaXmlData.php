@@ -138,23 +138,13 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
         if ($file) {
           $file_uri = $file->getFileUri();
           
-          //$file_path = $this->fileSystem->realpath($file_uri);
-          $file_changed = $file->getChangedTime();
-          
-          // Determine if we should process this media
-          $should_process = $this->shouldProcessMedia($media, $file_changed);
-          
-          if (!$should_process) {
-            continue;
-          }
-          
           // Check if it's an XML file
           $mime_type = $file->getMimeType();
           if (in_array($mime_type, ['application/xml', 'text/xml']) || 
               pathinfo($file_uri, PATHINFO_EXTENSION) === 'xml') {
             
             // Parse the XML file
-            $xml_data = $this->parseXmlFile($file_uri, $media_id, $file_changed);
+            $xml_data = $this->parseXmlFile($file_uri, $media_id);
             if ($xml_data) {
               $this->parsedData = array_merge($this->parsedData, $xml_data);
             }
@@ -165,52 +155,14 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
   }
 
   /**
-   * Determine if a media entity should be processed.
-   *
-   * @param \Drupal\media\Entity\Media $media: media entity
-   * @param int $file_changed: file changed timestamp.
-   *
-   * @return bool: TRUE if should process, FALSE otherwise.
-   */
-  protected function shouldProcessMedia($media, $file_changed) {
-    // Check if media has an associated node in field_media_of
-    if ($media->hasField('field_media_of') && !$media->get('field_media_of')->isEmpty()) {
-      $node_id = $media->get('field_media_of')->target_id;
-      $node_storage = $this->entityTypeManager->getStorage('node');
-      $node = $node_storage->load($node_id);
-      
-      if ($node) {
-        $node_changed = $node->getChangedTime();
-        
-        // Process if file timestamp is greater than node timestamp
-        // This will trigger a reimport and override the existing node
-        if ($file_changed > $node_changed) {
-          return TRUE;
-        }
-        
-        // File hasn't changed since node was last updated, skip
-        return FALSE;
-      }
-      
-      // Referenced node doesn't exist, should process
-      return TRUE;
-    }
-    
-    // No associated node (field_media_of is empty)
-    // Always process to create new node
-    return TRUE;
-  }
-
-  /**
    * Parse an XML file and extract data based on configuration.
    *
    * @param string $file_uri
    * @param int $media_id
-   * @param int $file_changed
    *
    * @return array: Parsed data array.
    */
-  protected function parseXmlFile($file_uri, $media_id, $file_changed) {
+  protected function parseXmlFile($file_uri, $media_id) {
     $data = [];
     
     if (!file_exists($file_uri)) {
@@ -232,7 +184,6 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
     try { 
       
       $xmlContent = file_get_contents($file_uri); //Raw file contents via stream wrapper URI e.g. s3
-      //$xml = simplexml_load_file($file_path);
       if ($xmlContent === FALSE || empty($xmlContent)) {
         \Drupal::logger('ead_migration')->error('Failed to read xml contents from URI: @uri', ['@uri' => $file_uri]);
         return $data;
@@ -275,7 +226,7 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
       foreach ($items as $index => $item) {
         $row_data = [
           'media_id' => $media_id,
-          'file_changed' => $file_changed,
+          'file_path' => $file_uri,
         ];
       
       // Register namespaces on each elements
