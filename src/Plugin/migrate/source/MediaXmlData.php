@@ -250,12 +250,14 @@ class MediaXmlData extends SourcePluginBase implements ContainerFactoryPluginInt
               // Handle multiple values
               $values = [];
               foreach ($result as $element) {
-                $values[] = (string) $element;
+                $domnode = dom_import_simplexml($element);
+                $values[] = trim($domnode->textContent);
               }
               $row_data[$field['name']] = $values;
             } else {
               // Get the first result and convert to string
-              $row_data[$field['name']] = (string) $result[0];
+              $domnode = dom_import_simplexml($result[0]);
+              $row_data[$field['name']] = trim($domnode->textContent);
             }
           } else {
             $row_data[$field['name']] = $is_multiple ? [] : NULL;
