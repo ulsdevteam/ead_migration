@@ -27,6 +27,11 @@ class eadEventSubscriber implements EventSubscriberInterface {
   const EXPECTED_NODE_TYPE = 'islandora_object';
 
   /**
+   * Keys of rows that are new in this migration run (never imported before)
+   */
+  protected array $newRows = [];
+
+  /**
    * Constructs a MigrationSubscriber object
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    */
@@ -58,12 +63,14 @@ class eadEventSubscriber implements EventSubscriberInterface {
     if (empty($mediaId)){
       return;
     }
-    // Check if the source MediaId has a destinationId mapped
+    //this is an update. Already mapped by an earlier run.
     $DestIds = $id_map->lookupDestinationIds($sourceIdvalues);
-
     if (!empty($DestIds) && !empty(array_filter($DestIds[0]))) {
      return;
-   }
+   } 
+   // flag for a first-time row
+   $this->newRows[$mediaId] = TRUE;
+   
    $media = $this->entityTypeManager->getStorage('media')->load($mediaId);
    if (!$media || !$media->hasField('field_media_of')) {
     return;
@@ -71,7 +78,7 @@ class eadEventSubscriber implements EventSubscriberInterface {
 
    $referenced_nodes = $media->get('field_media_of')->referencedEntities();
    if (empty($referenced_nodes)) {
-    return;
+    return;  
    }
    $existing_node = reset($referenced_nodes);
    $existing_nid = $existing_node->id();
@@ -84,17 +91,17 @@ class eadEventSubscriber implements EventSubscriberInterface {
     return;
   }
 
-  // Write nid as destid1 in migration map 
+  // Pre-map: Write the existing nid as destid1 in migration map 
   $id_map->saveIdMapping(
     $row,
     ['nid' => $existing_nid],
     MigrateIdMapInterface::STATUS_NEEDS_UPDATE
   );
   $row->setDestinationProperty('nid', $existing_nid);
-  \Drupal::logger('ead_migration')->info(
-    'Pre-mapped media @mid to existing node @nid via field_media_of.',
-    ['@mid' => $mediaId, '@nid' => $existing_nid]
-  );
+    \Drupal::logger('ead_migration')->info(
+      'Pre-mapped media @mid to existing node @nid via field_media_of.',
+      ['@mid' => $mediaId, '@nid' => $existing_nid]
+    );
   }
 
   /**
@@ -110,28 +117,37 @@ class eadEventSubscriber implements EventSubscriberInterface {
     }
 
     $row = $event->getRow();
+    // Add media save so as to trigger detrivatives for the first node migration run
+    $media_id = $row->getSourceProperty('media_id');
+    if (empty($this->newRows[$media_id])) { //Not a first-time row; skip
+      return;
+    }
+    unset($this->newRows[$media_id]);
     $destination_ids = $event->getDestinationIdValues();
     
     // Get destination node ID
-    if (!empty($destination_ids) && isset($destination_ids[0])) {
-      $node_id = $destination_ids[0];
-      $media_id = $row->getSourceProperty('media_id');
-      
-      if ($media_id && $node_id) {
+    $node_id = $destination_ids ? reset($destination_ids) : NULL;
+    if ($media_id && $node_id) {
         // Load the media entity and update field_media_of
         $media_storage = $this->entityTypeManager->getStorage('media');
         $media = $media_storage->load($media_id);
         
         if ($media && $media->hasField('field_media_of')) {
-          // Set the reference to the destination node
+          // Set the reference to the destination node for pre-mapped existing node
           $media->set('field_media_of', ['target_id' => $node_id]);
           $media->save();
-          \Drupal::logger('ead_migration')->info('Successfully saved media @mid with referencing node @nid',['@mid' => $media_id, '@nid' => $node_id]);
+          $node = $this->entityTypeManager->getStorage('node')->load($node_id);
+          $storage = $this->entityTypeManager->getStorage('action');
+          foreach (['xml_to_extracted_text', 'xslt_derivative'] as $action_id) {
+          if ($node && ($action = $storage->load($action_id))) {
+                $action->execute([$node]);
+            }
+          }
+          \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger detrivatives',['@mid' => $media_id, '@nid' => $node_id]);
         }
-      } else {
-        \Drupal::logger('ead_migration')->error('Failed to update field_media_of for media @mid',['@mid' => $media_id,]);
-      }
-    }
+    } else {
+        \Drupal::logger('ead_migration')->error('Failed to update field_media_of for media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
+        return;
+     }
   }
-
 }
