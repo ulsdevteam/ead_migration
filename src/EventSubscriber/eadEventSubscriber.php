@@ -27,9 +27,14 @@ class eadEventSubscriber implements EventSubscriberInterface {
   const EXPECTED_NODE_TYPE = 'islandora_object';
 
   /**
-   * Keys of rows that are new in this migration run (never imported before)
+   * Keys of mediaId rows that are new in this migration run (never imported before)
    */
   protected array $newRows = [];
+
+  /**
+   * The Islandora reaction plugin class for derivative actions.
+   */
+  const DERIVATIVE_REACTION = '\Drupal\islandora\Plugin\ContextReaction\DerivativeReaction';
 
   /**
    * Constructs a MigrationSubscriber object
@@ -86,7 +91,7 @@ class eadEventSubscriber implements EventSubscriberInterface {
    if ($existing_node->bundle() !== self::EXPECTED_NODE_TYPE) {
     \Drupal::logger('ead_migration')->warning(
       'Media @mid references node @nid but it is bundle "@bundle", skipping pre-map.',
-      ['@mid' => $media_id, '@nid' => $existing_nid, '@bundle' => $existing_node->bundle()]
+      ['@mid' => $mediaId, '@nid' => $existing_nid, '@bundle' => $existing_node->bundle()]
     );
     return;
   }
@@ -105,7 +110,7 @@ class eadEventSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * React to a post row save event.
+   * Save the media and fire the derivative reaction
    * @param \Drupal\migrate\Event\MigratePostRowSaveEvent $event
    */
    public function onPostRowSave(MigratePostRowSaveEvent $event): void {
@@ -117,9 +122,10 @@ class eadEventSubscriber implements EventSubscriberInterface {
     }
 
     $row = $event->getRow();
-    // Add media save so as to trigger detrivatives for the first node migration run
     $media_id = $row->getSourceProperty('media_id');
-    if (empty($this->newRows[$media_id])) { //Not a first-time row; skip
+    
+    //Only first-time rows
+    if (empty($media_id) || empty($this->newRows[$media_id])) { 
       return;
     }
     unset($this->newRows[$media_id]);
@@ -127,27 +133,47 @@ class eadEventSubscriber implements EventSubscriberInterface {
     
     // Get destination node ID
     $node_id = $destination_ids ? reset($destination_ids) : NULL;
-    if ($media_id && $node_id) {
-        // Load the media entity and update field_media_of
-        $media_storage = $this->entityTypeManager->getStorage('media');
-        $media = $media_storage->load($media_id);
-        
-        if ($media && $media->hasField('field_media_of')) {
-          // Set the reference to the destination node for pre-mapped existing node
-          $media->set('field_media_of', ['target_id' => $node_id]);
-          $media->save();
-          $node = $this->entityTypeManager->getStorage('node')->load($node_id);
-          $storage = $this->entityTypeManager->getStorage('action');
-          foreach (['xml_to_extracted_text', 'xslt_derivative'] as $action_id) {
-          if ($node && ($action = $storage->load($action_id))) {
-                $action->execute([$node]);
-            }
+    if (empty($node_id)) {
+      \Drupal::logger('ead_migration')->error(
+        'No destination node for media @mid; derivatives not triggered.',
+        ['@mid' => $media_id]
+      );
+      return;
+    }
+    
+    // Load the media entity and update field_media_of
+    $media_storage = $this->entityTypeManager->getStorage('media');
+    $node_storage = $this->entityTypeManager->getStorage('node');
+
+    //migration just saved, not stale cache.
+    $media_storage->resetCache([$media_id]);
+    $node_storage->resetCache([$node_id]);
+ 
+    $media = $media_storage->load($media_id);
+    $node = $node_storage->load($node_id);
+  
+    if ($media && $node && $media->hasField('field_media_of')) {
+      // Set the reference to the destination node for pre-mapped existing node
+      $media->set('field_media_of', ['target_id' => $node_id]);
+      $media->save();
+
+      // Fire the context reactions explicitly since Context module evaluates active states on http requests e.g. hits a page route
+      $islandoraUtils = \Drupal::service('islandora.utils');
+      if (!method_exists($islandoraUtils, 'executeDerivativeReactions')) {
+           \Drupal::logger('ead_migration')->error('Failed to locate IslandoraUtils::executeDerivativeReactions().');
+            return;
           }
-          \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger detrivatives',['@mid' => $media_id, '@nid' => $node_id]);
+      try {
+        $islandoraUtils->executeDerivativeReactions(self::DERIVATIVE_REACTION, $node, $media);
         }
+        catch (\Throwable $e) {
+          \Drupal::logger('ead_migration')->error('Failed to execute Derivative Reaction: @msg',['@msg' => $e->getMessage()],);
+          return;
+        }
+          \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger detrivatives',['@mid' => $media_id, '@nid' => $node_id]);
     } else {
-        \Drupal::logger('ead_migration')->error('Failed to update field_media_of for media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
+        \Drupal::logger('ead_migration')->error('Failed to load media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
         return;
-     }
+      }
   }
 }
