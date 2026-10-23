@@ -80,7 +80,6 @@ class eadEventSubscriber implements EventSubscriberInterface {
     if (!$media || !$media->hasField('field_media_of')) {
      return;
     }
-
     $referenced_nodes = $media->get('field_media_of')->referencedEntities();
     if (empty($referenced_nodes)) {
      return;  
@@ -160,10 +159,10 @@ class eadEventSubscriber implements EventSubscriberInterface {
         \Drupal::logger('ead_migration')->error('Failed to execute Derivative Reactions @msg',['@msg' => $e->getMessage()]);
         return;
       }
-      \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger detrivatives',['@mid' => $media_id, '@nid' => $node_id]);
+      \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger derivatives',['@mid' => $media_id, '@nid' => $node_id]);
     } else {
-        \Drupal::logger('ead_migration')->error('Failed to load media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
-        return;
-      }
+       \Drupal::logger('ead_migration')->error('Failed to load media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
+       return;
+    }
   }
 }
