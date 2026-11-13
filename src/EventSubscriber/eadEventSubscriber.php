@@ -8,6 +8,8 @@ use Drupal\migrate\Event\MigratePostRowSaveEvent;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\migrate\Plugin\MigrateIdMapInterface; 
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Session\AccountSwitcherInterface;
 
 /**
  * Event subscriber to update Media entities after node creation.
@@ -22,9 +24,29 @@ class eadEventSubscriber implements EventSubscriberInterface {
   protected $entityTypeManager;
 
   /**
+   * The account switcher.
+   *
+   * @var \Drupal\Core\Session\AccountSwitcherInterface
+   */
+  protected AccountSwitcherInterface $accountSwitcher;
+
+  /**
+   * The current user.
+   *
+   * @var \Drupal\Core\Session\AccountProxyInterface
+   */
+  protected AccountProxyInterface $currentUser;
+
+  /**
    * The node bundle we expect field_media_of to point to.
    */
   const EXPECTED_NODE_TYPE = 'islandora_object';
+
+  /**
+   * uid of the account used to save media and run derivative actions.
+   * Drush runs as anonymous, which cannot create the derivative media types.
+   */
+  const DERIVATIVE_USER_ID = 1;
 
   /**
    * Keys of mediaId rows that are new in this migration run (never imported before)
@@ -39,9 +61,17 @@ class eadEventSubscriber implements EventSubscriberInterface {
   /**
    * Constructs a MigrationSubscriber object
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   * @param \Drupal\Core\Session\AccountSwitcherInterface $account_switcher
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(
+    EntityTypeManagerInterface $entity_type_manager,
+    AccountSwitcherInterface $account_switcher,
+    AccountProxyInterface $current_user
+  ) {
     $this->entityTypeManager = $entity_type_manager;
+    $this->accountSwitcher = $account_switcher;
+    $this->currentUser = $current_user;
   }
 
   /**
@@ -146,7 +176,29 @@ class eadEventSubscriber implements EventSubscriberInterface {
       $node = $node_storage->load($node_id);
     }
   
-    if ($media && $node && $media->hasField('field_media_of')) {
+    if (!$media || !$node || !$media->hasField('field_media_of')) {
+      \Drupal::logger('ead_migration')->error('Failed to load media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
+      return;
+    }
+    
+    //Switch to a privileged user for both the media save and the derivative due to anonymous role used in drush
+    $switched = FALSE;
+    try {
+      if ($this->currentUser->isAnonymous()) {
+        $account = $this->entityTypeManager->getStorage('user')->load(self::DERIVATIVE_USER_ID);
+        if ($account) {
+          $this->accountSwitcher->switchTo($account);
+          $switched = TRUE;
+          \Drupal::logger('ead_migration')->info('Switched to uid @uid for media save and derivatives', ['@uid' => $this->currentUser->id()]);
+        }
+        else {
+          \Drupal::logger('ead_migration')->warning(
+            'Derivative user @uid not found; running as anonymous.',
+            ['@uid' => self::DERIVATIVE_USER_ID]
+          );
+        }
+      }
+
       // Set the reference to the destination node for pre-mapped existing node
       $media->set('field_media_of', ['target_id' => $node_id]);
       $media->save();
@@ -160,9 +212,11 @@ class eadEventSubscriber implements EventSubscriberInterface {
         return;
       }
       \Drupal::logger('ead_migration')->info('Successfully saved media @mid against node @nid to trigger derivatives',['@mid' => $media_id, '@nid' => $node_id]);
-    } else {
-       \Drupal::logger('ead_migration')->error('Failed to load media @mid (node @nid).',['@mid' => $media_id, '@nid' => $node_id]);
-       return;
+    } 
+    finally {
+      if ($switched) {
+	$this->accountSwitcher->switchBack();
+      }
     }
-  }
+ }
 }

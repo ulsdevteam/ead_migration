@@ -1,6 +1,6 @@
 services:
   ead_migration.migration_subscriber:
     class: Drupal\ead_migration\EventSubscriber\eadEventSubscriber
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager','@account_switcher', '@current_user']
     tags:
       - { name: event_subscriber }
